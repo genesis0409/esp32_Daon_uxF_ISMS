@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Smart Farm Configuration Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+  <body>
+    <div class="topnav">
+      <h1>uxF-StandardBoard-test</h1>
+      <!-- <h1>uxF-SensorBoard01-test</h1> -->
+    </div>
+    <div class="content">
+      <div class="card-grid">
+        <div class="card">
+          <form action="/" method="POST">
+            <p>
+              <label for="protocol">Protocol (1~2)</label>
+              <input type="text" id="protocol" name="protocol" /><br />
+              Wired = 1, Wireless = 2<br />
+              <label for="address">Modbus Address (1~127)</label>
+              <input type="text" id="address" name="address" /><br />
+              <label for="sensor">Sensor Type (1~5)</label>
+              <input type="text" id="sensor" name="sensor" /><br />
+              1: Teros21 Soil Water Potential, 2: Woosung Rain Detector, 3:
+              Haimil Rain Detector, 4: RK520-02(Only Wireless)<br />
+              <label for="period">Measurement Period(wireless)</label>
+              <input type="text" id="period" name="period" /><br />
+              <label for="espnow">RS485/Sensing Mode(wireless)</label>
+              <input type="text" id="espnow" name="espnow" /><br />
+              RS485(Standardization) = 1, Sensing(Measurement) = 2<br />
+              <label for="mac">Mac Address (wireless)</label>
+              <input
+                type="text"
+                id="mac"
+                name="mac"
+                placeholder="AA:BB:CC:DD:EE:FF"
+              /><br />
+              데이터 송수신을 위한 MAC address 를 설정한다.<br />
+              <label for="addition">Additional Device(wireless)</label>
+              <input type="text" id="addition" name="addition" /><br />
+              추가 레지스터 맵을 사용하는 센서는 해당 필드를 1로 설정한다.<br />
+              해당 필드가 설정되지 않은 센서는 기존 표준화 레지스터 맵을
+              사용한다.<br />
+              <br /><br />
+              <input type="submit" value="Submit" />
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

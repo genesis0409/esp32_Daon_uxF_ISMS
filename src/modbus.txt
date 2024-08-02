@@ -1,0 +1,102 @@
+void addCrc(byte buf[], int bufLen)
+{
+  uint16_t crc = crc16(buf, bufLen - 2, 0x8005, 0xFFFF, 0, true, true);
+  byte crcHigh = crc >> 8;
+  byte crcLow = crc & 0xFF;
+  *(buf + (bufLen - 2)) = crcLow;
+  *(buf + (bufLen - 1)) = crcHigh;
+}
+
+uint16_t combineByte(byte highData, byte lowData)
+{
+  return ((uint16_t)highData << 8) | lowData;
+}
+
+void receiveModbusFrame(byte *frame, int *frameLen)
+{
+  while (Serial2.available())
+  {
+    frame[*frameLen] = Serial2.read();
+    (*frameLen)++;
+    delayMicroseconds(1250); // 1/9600*8*1.5 sec
+  }
+}
+
+bool hasRequestError(byte *mbRequest, int mbRequestLen, int slaveAddress)
+{
+  return mbRequest[0] != slaveAddress || mbRequestLen < 2 || hasCrcError(mbRequest, mbRequestLen);
+}
+
+bool hasCrcError(byte frame[], int frameLen)
+{
+  if (frameLen < 2)
+  {
+    return 1;
+  }
+  byte dataField[frameLen - 2];
+  for (int i = 0; i < frameLen - 2; i++)
+  {
+    dataField[i] = frame[i];
+  }
+  uint16_t newCrc = crc16(dataField, frameLen - 2, 0x8005, 0xFFFF, 0, true, true);
+  byte newCrcHighByte = newCrc >> 8;
+  byte newCrcLowByte = newCrc & 0xFF;
+  return frame[frameLen - 1] != newCrcHighByte || frame[frameLen - 2] != newCrcLowByte;
+}
+
+void sendErrorResponse(int errorCode, byte slaveAddress, byte functionCode)
+{
+  int exceptionResponseBufLen = 5;
+  byte exceptionResponseBuf[exceptionResponseBufLen];
+
+  exceptionResponseBuf[0] = slaveAddress;
+  exceptionResponseBuf[1] = functionCode + 0x80;
+  exceptionResponseBuf[2] = errorCode;
+  addCrc(exceptionResponseBuf, exceptionResponseBufLen);
+
+  sendResponse(exceptionResponseBuf, exceptionResponseBufLen);
+}
+
+void sendResponse(byte *response, int responseLen)
+{
+  digitalWrite(rs485TxEnPin, HIGH);
+  Serial2.write(response, responseLen);
+  Serial2.flush();
+  digitalWrite(rs485TxEnPin, LOW);
+}
+
+void saveFloatToRegisterMap(float value, int startIndex)
+{
+  const int minFieldIndex = 203;
+  // const int maxFieldIndex = 292;
+  const int maxFieldIndex = 392;
+  const int sensorState = 0;
+
+  if (startIndex < minFieldIndex || startIndex > maxFieldIndex)
+  {
+    Serial.println("Invalid registerMap Index");
+    return;
+  }
+
+  uint32_t bits = *(reinterpret_cast<uint32_t *>(&value));
+  uint16_t bottom16bits = bits & 0xFFFF;
+  uint16_t top16bits = bits >> 16;
+
+  registerMap[startIndex] = bottom16bits;
+  registerMap[startIndex + 1] = top16bits;
+  registerMap[startIndex + 2] = sensorState;
+}
+
+void modbusDebugPrint(byte *buf, int bufLen)
+{
+  for (int i = 0; i < bufLen; i++)
+  {
+    if (buf[i] < 0x10)
+    {
+      Serial.print("0");
+    }
+    Serial.print(buf[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println("");
+}

@@ -1,0 +1,297 @@
+// Sensor Function Implementation File
+
+void initSensorPins()
+{
+  sdi12.begin();
+  pinMode(el817Pin, INPUT);
+}
+
+int getDataStoringIndex(int sensorType)
+{
+  switch (sensorType)
+  {
+  // WaterPotential
+  case 1:
+    return 251;
+  // Rain
+  case 2:
+  case 3:
+    return 218;
+  // Wireless only Composite sensor 4 (401~403)
+  case 41:
+    return 242;
+  case 42:
+    return 248;
+  case 43:
+    return 257;
+  // Additional Sensor
+  case 5:
+    return 251 + 100;
+  case 61:
+    return 242 + 100;
+  case 62:
+    return 248 + 100;
+  case 63:
+    return 257 + 100;
+  default:
+    Serial.println("Attempting to find the address of the register map with an invalid sensor type.");
+    return 0;
+  }
+}
+
+void checkSensorAwakeTime(int id)
+{
+  if (id == idRk52002Ec || id == idRk52002Humi || id == idRk52002Temp)
+  {
+    id = idRk52002;
+  }
+  else if (id == idAddRk52002Ec || id == idAddRk52002Humi || id == idAddRk52002Temp)
+  {
+    id = idAddRk52002;
+  }
+
+  heartbeatTimes[id - 1] = millis();
+}
+
+void resetSensorDataRegisters(int sensorType)
+{
+  // Complex Sensor Rk520-02
+  if (sensorType == idRk52002)
+  {
+    const int ecAddress = 242;
+    const int humiAddress = 248;
+    const int tempAddress = 257;
+
+    registerMap[ecAddress] = 0;
+    registerMap[ecAddress + 1] = 0;
+    registerMap[ecAddress + 2] = 1;
+
+    registerMap[humiAddress] = 0;
+    registerMap[humiAddress + 1] = 0;
+    registerMap[humiAddress + 2] = 1;
+
+    registerMap[tempAddress] = 0;
+    registerMap[tempAddress + 1] = 0;
+    registerMap[tempAddress + 2] = 1;
+  }
+  else if (sensorType == idAddRk52002)
+  {
+    const int ecAddress = 242 + 100;
+    const int humiAddress = 248 + 100;
+    const int tempAddress = 257 + 100;
+
+    registerMap[ecAddress] = 0;
+    registerMap[ecAddress + 1] = 0;
+    registerMap[ecAddress + 2] = 1;
+
+    registerMap[humiAddress] = 0;
+    registerMap[humiAddress + 1] = 0;
+    registerMap[humiAddress + 2] = 1;
+
+    registerMap[tempAddress] = 0;
+    registerMap[tempAddress + 1] = 0;
+    registerMap[tempAddress + 2] = 1;
+  }
+  // Other Sensors
+  else
+  {
+    int registerAddress = getDataStoringIndex(sensorType);
+    registerMap[registerAddress] = 0;
+    registerMap[registerAddress + 1] = 0;
+    registerMap[registerAddress + 2] = 1;
+  }
+}
+
+void attachTeros21SoilWaterPotential()
+{
+  registerMap[117] = 15;
+}
+
+void attachWoosungRainDetector()
+{
+  registerMap[106] = 4;
+}
+
+void attachHaimilRainDetector()
+{
+  registerMap[106] = 4;
+}
+
+void attachRk52002()
+{
+  registerMap[114] = 12;
+  registerMap[116] = 14;
+  registerMap[119] = 17;
+}
+
+void getTeros21SoilWaterPotential()
+{
+  ESP32_SDI12::Status res = sdi12.measure(deviceAddr, sdi12Values, sizeof(sdi12Values), &numberOfReturnedValues);
+  if (res != ESP32_SDI12::SDI12_OK)
+  {
+    Serial.printf("ESP32_SDI12 Error: %d\n", res);
+  }
+  float sensorValue = sdi12Values[0];
+  Serial.print("Soil Water Potential: ");
+  Serial.println(sensorValue);
+
+  const int soilWaterPotentialIndex = 251;
+  saveFloatToRegisterMap(sdi12Values[0], soilWaterPotentialIndex);
+
+  espnowData.id = idTeros21SoilWaterPotential;
+  espnowData.sensorData = sdi12Values[0];
+  espnowData.sensorState = 0;
+
+  if (params.additionValue)
+  {
+    espnowData.id = idAddTeros21SoilWaterPotential;
+  }
+}
+
+void getWoosungRainDetector()
+{
+  int digitalValue = digitalRead(el817Pin);
+  if (digitalValue == LOW)
+  {
+    Serial.println("Detect Rain");
+    rainValue = 1.0;
+  }
+  else
+  {
+    Serial.println("Undetect Rain");
+    rainValue = 0.0;
+  }
+
+  const int rainDetectorIndex = 218;
+  saveFloatToRegisterMap(rainValue, rainDetectorIndex);
+
+  espnowData.id = idWoosungRainDetector;
+  espnowData.sensorData = rainValue;
+  espnowData.sensorState = 0;
+}
+
+void getHaimilRainDetector()
+{
+  int digitalValue = digitalRead(el817Pin);
+  if (digitalValue == LOW)
+  {
+    Serial.println("Detect Rain");
+    rainValue = 1.0;
+  }
+  else
+  {
+    Serial.println("Undetect Rain");
+    rainValue = 0.0;
+  }
+
+  const int rainDetectorIndex = 218;
+  saveFloatToRegisterMap(rainValue, rainDetectorIndex);
+
+  espnowData.id = idHaimilRainDetector;
+  espnowData.sensorData = rainValue;
+  espnowData.sensorState = 0;
+}
+
+void getRk52002()
+{
+  int reqLen = 8;
+  byte request[reqLen] = {0xFE, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00};
+  addCrc(request, reqLen);
+
+  digitalWrite(rs485TxEnPin, HIGH);
+  Serial2.write(request, reqLen);
+  Serial2.flush();
+  digitalWrite(rs485TxEnPin, LOW);
+
+  delay(100);
+
+  byte response[20];
+  int responseLen = 0;
+  if (Serial2.available())
+  {
+    Serial.print("Rk520-02 response: ");
+    while (true)
+    {
+      if (!Serial2.available())
+      {
+        break;
+      }
+      response[responseLen] = Serial2.read();
+      if (response[responseLen] < 0x10)
+      {
+        Serial.print("0");
+      }
+      Serial.print(response[responseLen], HEX);
+      Serial.print(" ");
+      responseLen++;
+    }
+    Serial.println("");
+  }
+
+  if (hasCrcError(response, responseLen))
+  {
+    Serial.println("Sensor Response CRC error");
+  }
+
+  byte tempHigh = response[3];
+  byte tempLow = response[4];
+  byte humiHigh = response[5];
+  byte humiLow = response[6];
+  byte ecHigh = response[7];
+  byte ecLow = response[8];
+
+  float temp = 0.0;
+  float humi = 0.0;
+  float ec = 0.0;
+
+  int tempData = tempHigh * 256 + tempLow;
+  if (tempData < 0x8000)
+  {
+    temp = tempData / 10.0;
+  }
+  else
+  {
+    temp = (tempData - 0xFFFF - 0x01) / 10.0;
+  }
+  humi = (humiHigh * 256 + humiLow) / 10.0;
+  ec = (ecHigh * 256 + ecLow) / 1000.0;
+
+  // Send message via ESP-NOW
+  espnowData.sensorState = 0;
+  esp_err_t result;
+
+  espnowData.id = idRk52002Ec;
+  espnowData.sensorData = ec;
+  if (params.additionValue)
+  {
+    espnowData.id = idAddRk52002Ec;
+  }
+  result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+  if (result != ESP_OK)
+  {
+    Serial.print(result);
+    Serial.println("Error : send esp-now data.");
+  }
+  delay(1);
+
+  espnowData.id = idRk52002Humi;
+  espnowData.sensorData = humi;
+  if (params.additionValue)
+  {
+    espnowData.id = idAddRk52002Humi;
+  }
+  result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+  if (result != ESP_OK)
+  {
+    Serial.print(result);
+    Serial.println("Error : send esp-now data.");
+  }
+  delay(1);
+
+  espnowData.id = idRk52002Temp;
+  espnowData.sensorData = temp;
+  if (params.additionValue)
+  {
+    espnowData.id = idAddRk52002Temp;
+  }
+}
