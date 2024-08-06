@@ -88,12 +88,12 @@ enum LoopMode
 
 /* ----- ESP-NOW ----- */
 
-typedef struct structMessage
+typedef struct structMessage // structMessage 자료형
 {
-  int id;
-  float sensorData;
-  uint16_t sensorState;
-  uint16_t battery;
+  int id;               // esp 센서보드의 id
+  float sensorData;     // 센서 값
+  uint16_t sensorState; // 센서 상태
+  uint16_t battery;     // 배터리 전압값
 } structMessage;
 
 structMessage espnowData;
@@ -243,8 +243,8 @@ void setupApMode()
   Serial.println("Setting AP (Access Point)");
 
   // WiFi.softAP("ESP-WIFI-MANAGER", NULL);
-  WiFi.softAP("uxF-StandardBoard-test", NULL);
-  // WiFi.softAP("uxF-SensorBoard01-test", NULL);
+  // WiFi.softAP("uxF-StandardBoard-test", NULL);
+  WiFi.softAP("uxF-SensorBoard01-test", NULL);
 
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
@@ -295,7 +295,7 @@ void setupWirelessRs485Mode()
 
   WiFi.mode(WIFI_STA);
 
-  esp_wifi_set_mac(WIFI_IF_STA, &params.newMacAddress[0]);
+  esp_wifi_set_mac(WIFI_IF_STA, &params.newMacAddress[0]); // wifi manager 사전입력 mac 주소로 변경
   Serial.print("[NEW] Broadcast MAC Address of RS485 Board :  ");
   Serial.println(WiFi.macAddress());
 
@@ -373,7 +373,7 @@ void setNodeInfo()
 {
   const uint16_t notUsed = 0;
   uint16_t nodeInfo[] = {notUsed, 0, 0, 1, 0, 10, 30}; // 노드 정보; 7개원소; 무슨 의미일까?
-  memcpy(registerMap, nodeInfo, sizeof(nodeInfo));
+  memcpy(registerMap, nodeInfo, sizeof(nodeInfo));     // 노드 정보를 레지스터맵 [0]~[6] 까지 복사
 }
 
 // 센서 정보를 노드(레지스터 맵)에 설정
@@ -693,7 +693,7 @@ bool hasCrcError(byte frame[], int frameLen)
 {
   if (frameLen < 2) // 프레임 길이가 2보다 작은 경우 유효한 CRC를 포함할 수 없음으로 오류
   {
-    return 1; // true 반환: CRC 오류 있음
+    return true; // true 반환: CRC 오류 있음
   }
   byte dataField[frameLen - 2]; // 프레임에서 마지막 두 바이트(CRC)를 제외한 데이터를 복사
   for (int i = 0; i < frameLen - 2; i++)
@@ -703,6 +703,8 @@ bool hasCrcError(byte frame[], int frameLen)
   uint16_t newCrc = crc16(dataField, frameLen - 2, 0x8005, 0xFFFF, 0, true, true);
   byte newCrcHighByte = newCrc >> 8;  // CRC 상위 바이트
   byte newCrcLowByte = newCrc & 0xFF; // CRC 하위 바이트
+
+  // 프레임의 CRC와 계산된 CRC를 비교
   return frame[frameLen - 1] != newCrcHighByte || frame[frameLen - 2] != newCrcLowByte;
 }
 
@@ -821,6 +823,7 @@ void checkSensorAwakeTime(int id)
   heartbeatTimes[id - 1] = millis();
 }
 
+// 센서 타입(코드번호)으로 구분하여 레지스터 주소 설정
 void resetSensorDataRegisters(int sensorType)
 {
   // Complex Sensor Rk520-02
@@ -830,17 +833,20 @@ void resetSensorDataRegisters(int sensorType)
     const int humiAddress = 248;
     const int tempAddress = 257;
 
-    registerMap[ecAddress] = 0;
-    registerMap[ecAddress + 1] = 0;
-    registerMap[ecAddress + 2] = 1;
+    // ec 레지스터 주소
+    registerMap[ecAddress] = 0;     // 242 : 0
+    registerMap[ecAddress + 1] = 0; // 243 : 0
+    registerMap[ecAddress + 2] = 1; // 244 : 1
 
-    registerMap[humiAddress] = 0;
-    registerMap[humiAddress + 1] = 0;
-    registerMap[humiAddress + 2] = 1;
+    // 지습 레지스터 주소
+    registerMap[humiAddress] = 0;     // 248 : 0
+    registerMap[humiAddress + 1] = 0; // 249 : 0
+    registerMap[humiAddress + 2] = 1; // 250 : 1
 
-    registerMap[tempAddress] = 0;
-    registerMap[tempAddress + 1] = 0;
-    registerMap[tempAddress + 2] = 1;
+    // 지온 레지스터 주소
+    registerMap[tempAddress] = 0;     // 257 : 0
+    registerMap[tempAddress + 1] = 0; // 258 : 0
+    registerMap[tempAddress + 2] = 1; // 259 : 1
   }
   else if (sensorType == idAddRk52002)
   {
