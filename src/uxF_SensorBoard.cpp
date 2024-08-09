@@ -548,6 +548,7 @@ void loopWirelessSensingMode()
   for (int i = 0; i < params.sensor.length(); i++)
   {
     int index = charToInt(params.sensor[i]);
+    Serial.print("Sensor index: ");
     Serial.println(index);
     if (index < 1 || index > numberOfSensors)
     {
@@ -563,13 +564,13 @@ void loopWirelessSensingMode()
       Serial.printf("battery Percentage: %u%%\n", batteryCharge);
       espnowData.battery = batteryCharge;
 
-      // Send message via ESP-NOW
+      // Send message via ESP-NOW; 이 부분은 온도/배터리값 합쳐서 보내는듯?
       esp_err_t result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
 
       if (result != ESP_OK)
       {
         Serial.print(result);
-        Serial.println("Error : send esp-now data.");
+        Serial.println("Error : send esp-now RK520-02: Temp/BattV data.");
       }
     }
   }
@@ -583,9 +584,16 @@ void loopWirelessSensingMode()
 
 uint16_t getBatteryPercentage(int sensorType)
 {
-  float analogVal = analogRead(32);
-  float vout = analogVal * 3.3 / 4095;
-  float vin = vout * 5.0;
+  float analogVal = analogRead(32);                 // 0~4095 12비트 해상도
+  float vout = analogVal * 3.3 / 4095;              // 아날로그 값을 전압으로 변환 esp32(0~4095) -> (0~3.3v)
+  float vin = vout / (7500.0 / (30000.0 + 7500.0)); // SZH-SSBH-043 모듈 저항의 전압 분배에 의한 5배 역산
+
+  // Serial.print("Input Analog Value: ");
+  // Serial.println(analogVal);
+  // Serial.print("Analog to Voltage (max 3.3v): ");
+  // Serial.println(vout);
+  // Serial.print("Battery Voltage: ");
+  // Serial.println(vin);
 
   const float dischargeVolt = 7.6;
   const float fullchargeVolt = 12.29;
@@ -624,12 +632,13 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
 {
-  char macStr[18];
+  char macStr[18]; // 2자리씩 6개 바이트 + 5개 구분자 + '\0'
   Serial.print("Packet received from: ");
+  // snprintf() 함수로 포맷 지정 문자열을 사용해 mac 주소 형식의 문자열로 변환, 'macStr'에 저장
   snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   Serial.println(macStr);
-  memcpy(&espnowData, incomingData, sizeof(espnowData));
-  Serial.printf("Sensor Type: %u \r\n", espnowData.id);
+  memcpy(&espnowData, incomingData, sizeof(espnowData)); // incomingData 배열에 수신된 데이터를 espnowData 구조체로 복사
+  Serial.printf("Sensor Type: %u \r\n", espnowData.id);  // %u 부호 없는 10진 정수
 
   checkSensorAwakeTime(espnowData.id);
 
@@ -990,16 +999,20 @@ void getRk52002()
       {
         break;
       }
-      response[responseLen] = Serial2.read();
-      if (response[responseLen] < 0x10)
+
+      response[responseLen] = Serial2.read(); // response[0] 인덱스부터 채워나감
+      if (response[responseLen] < 0x10)       // 16진수 출력 포맷 자릿수
       {
         Serial.print("0");
       }
-      Serial.print(response[responseLen], HEX);
-      Serial.print(" ");
+      Serial.print(response[responseLen], HEX); // 16진수 출력
+      Serial.print(" ");                        // 각 비트 사이의 공백
       responseLen++;
     }
     Serial.println("");
+
+    Serial.print("Response length: ");
+    Serial.println(responseLen);
   }
 
   if (hasCrcError(response, responseLen))
@@ -1044,7 +1057,7 @@ void getRk52002()
   if (result != ESP_OK)
   {
     Serial.print(result);
-    Serial.println("Error : send esp-now data.");
+    Serial.println("Error : send esp-now RK520-02: EC data.");
   }
   delay(1);
 
@@ -1058,7 +1071,7 @@ void getRk52002()
   if (result != ESP_OK)
   {
     Serial.print(result);
-    Serial.println("Error : send esp-now data.");
+    Serial.println("Error : send esp-now RK520-02: Humi data.");
   }
   delay(1);
 
@@ -1068,4 +1081,6 @@ void getRk52002()
   {
     espnowData.id = idAddRk52002Temp;
   }
+  // 왜 여기 밑이 없지? -> 배터리 전압값 포함해서 온도랑 같이 보내기 때문인듯
+  // Serial.println("Error : send esp-now RK520-02: Temp data.");
 }
