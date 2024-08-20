@@ -5,20 +5,22 @@
 #include "CRC.h"
 #include "InputParams.h"
 
-#define VERSION "0.1.1" // add battery voltage
+#define VERSION "0.2.0" // RK520-02 modbus 통신 쓰레기값 처리 로직 추가 (getRk52002())
+
+#define ADDR_RK52002 0XFE
 
 /* ----- Sensors ----- */
 
-enum SensorId
+enum SensorId // enum은 값을 명시하지 않은 경우, 이전 항목의 값보다 1씩 증가하는 값을 자동으로 할당
 {
   idTeros21SoilWaterPotential = 1,
-  idWoosungRainDetector,
-  idHaimilRainDetector,
+  idWoosungRainDetector, // 2
+  idHaimilRainDetector,  // 3
   // Complex Sensor (Only Wireless)
-  idRk52002,
+  idRk52002, // 4
   idRk52002Ec = 41,
-  idRk52002Humi,
-  idRk52002Temp,
+  idRk52002Humi, // 42
+  idRk52002Temp, // 43
   // Additional Sensor (Only Wireless, Not standard)
   idAddTeros21SoilWaterPotential = 5,
   idAddRk52002 = 6,
@@ -29,24 +31,24 @@ enum SensorId
 
 // Number of sensor types
 const int numberOfSensors = 6;
-unsigned long heartbeatTimes[numberOfSensors];
+unsigned long heartbeatTimes[numberOfSensors];      // 센서별 timeout 계산에 필요한 millis() 값을 저장하는 배열
 const unsigned long heartbeatTimeout = 1800 * 1000; // 1800초, 30분
-void checkHeartbeatTime(int id);
-void resetSensorDataRegisters(int sensorType);
+void checkHeartbeatTime(int id);                    // 사용 안하는듯?
+void resetSensorDataRegisters(int sensorType);      // 센서 타입(코드번호)으로 구분하여 레지스터 주소 설정
 
-// Function to register in the registerMap.
+// Function to register in the registerMap.; 센서 연결 시 레지스터맵에 기록하는 함수
 void attachTeros21SoilWaterPotential();
 void attachWoosungRainDetector();
 void attachHaimilRainDetector();
 void attachRk52002();
 
-// Function that reads sensor information and stores it in a registerMap and espnowData.
+// Function that reads sensor information and stores it in a registerMap and espnowData.; 센서값 획득 함수
 void getTeros21SoilWaterPotential();
 void getWoosungRainDetector();
 void getHaimilRainDetector();
 void getRk52002();
 
-// Array of function pointers
+// Array of function pointers; 함수포인터로 함수선택
 void (*attachSensors[numberOfSensors])() = {attachTeros21SoilWaterPotential, attachWoosungRainDetector, attachHaimilRainDetector, attachRk52002};
 void (*getSensors[numberOfSensors])() = {getTeros21SoilWaterPotential, getWoosungRainDetector, getHaimilRainDetector, getRk52002};
 
@@ -68,7 +70,7 @@ const int el817Pin = 4;
 float rainValue;
 
 // Battery Analog Pin
-const int batteryCheckPin = 32;
+const int batteryCheckPin = 32; // ADC1핀(32~35) 사용해야; ADC2는 WIFI 점유
 
 /* ----- AP Mode ----- */
 
@@ -142,17 +144,19 @@ void loopWirelessSensingMode();
 
 /* ----- Declare Others ----- */
 
-uint16_t getBatteryPercentage(int sensorType);
 void blinkLed();
 int charToInt(char c);
+
+uint16_t getBatteryPercentage(int sensorType); // SZH-SSBH-043 모듈 사용, 전압값 계산
+bool sendsTempBattData = false;                // hasCrcError() 함수와 연동하여 온도/전압값 전송 여부 결정
 
 void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
 
 /* ----- Declare Modbus Functions (modbus.cpp) ----- */
 
-void addCrc(byte buf[], int bufLen);
-uint16_t combineByte(byte highData, byte lowData);
+void addCrc(byte buf[], int bufLen);               // CRC 계산해 마지막 2바이트에 붙이는 함수
+uint16_t combineByte(byte highData, byte lowData); // 상위 8비트와 하위 8비트 결합
 void receiveModbusFrame(byte *frame, int *frameLen);
 bool hasRequestError(byte *mbRequest, int mbRequestLen, int slaveAddress);
 bool hasCrcError(byte frame[], int frameLen);
@@ -163,20 +167,7 @@ void modbusDebugPrint(byte *buf, int bufLen);
 
 /* ----- Declare Sensor Functions (sensor.cpp) ----- */
 
-void initSensorPins();
-int getDataStoringIndex(int sensorType);
-void checkSensorAwakeTime(int id);
-void resetSensorDataRegisters(int sensorType);
-
-void attachTeros21SoilWaterPotential();
-void attachWoosungRainDetector();
-void attachHaimilRainDetector();
-void attachRk52002();
-
-void getTeros21SoilWaterPotential();
-void getWoosungRainDetector();
-void getHaimilRainDetector();
-void getRk52002();
+void checkSensorAwakeTime(int id); // onDataRecv에서 센서타입(id)을 받아 millis()로 타임아웃 계산
 
 /* ----- Main ----- */
 
@@ -556,7 +547,7 @@ void loopWirelessSensingMode()
     }
     else
     {
-      // Sensing Functions
+      // Sensing Functions; 센서값 획득
       (*getSensors[index - 1])();
 
       // Check Wireless Sensor Board Battery.
@@ -564,13 +555,17 @@ void loopWirelessSensingMode()
       Serial.printf("battery Percentage: %u%%\n", batteryCharge);
       espnowData.battery = batteryCharge;
 
-      // Send message via ESP-NOW; 이 부분은 온도/배터리값 합쳐서 보내는듯?
-      esp_err_t result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
-
-      if (result != ESP_OK)
+      if (sendsTempBattData) // getRk52002()의 hasCrcError() 발생 시 전송 차단
       {
-        Serial.print(result);
-        Serial.println("Error : send esp-now RK520-02: Temp/BattV data.");
+        // Send message via ESP-NOW; 이 부분은 온도/배터리값 합쳐서 보내는듯?
+        esp_err_t result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+
+        if (result != ESP_OK)
+        {
+          Serial.println("Error : send esp-now RK520-02: Temp/BattV data.");
+          Serial.print("Code: ");
+          Serial.println(result);
+        }
       }
     }
   }
@@ -584,7 +579,7 @@ void loopWirelessSensingMode()
 
 uint16_t getBatteryPercentage(int sensorType)
 {
-  float analogVal = analogRead(32);                 // 0~4095 12비트 해상도
+  float analogVal = analogRead(batteryCheckPin);    // 0~4095 12비트 해상도
   float vout = analogVal * 3.3 / 4095;              // 아날로그 값을 전압으로 변환 esp32(0~4095) -> (0~3.3v)
   float vin = vout / (7500.0 / (30000.0 + 7500.0)); // SZH-SSBH-043 모듈 저항의 전압 분배에 의한 5배 역산
 
@@ -626,8 +621,8 @@ int charToInt(char c)
 
 void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-  Serial.print("Last Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success." : "Delivery Fail..");
+  Serial.print("Last Packet Send Status: ");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success." : "Delivery Failure...");
 }
 
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
@@ -665,11 +660,11 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
 // modbus.cpp ************************************************************************************************************************************
 void addCrc(byte buf[], int bufLen)
 {
-  uint16_t crc = crc16(buf, bufLen - 2, 0x8005, 0xFFFF, 0, true, true); // CRC16 값 계산
-  byte crcHigh = crc >> 8;                                              // 계산된 16비트 CRC 값의 상위 8비트
-  byte crcLow = crc & 0xFF;                                             // 계산된 16비트 CRC 값의 하위 8비트
-  *(buf + (bufLen - 2)) = crcLow;                                       // 버퍼의 마지막에서 두 번째 위치에 하위 8비트 저장
-  *(buf + (bufLen - 1)) = crcHigh;                                      // 버퍼의 마지막 위치에 상위 8비트 저장
+  uint16_t crc = calcCRC16(buf, bufLen - 2, 0x8005, 0xFFFF, 0, true, true); // CRC16 값 계산, true, true는 영향 없나?
+  byte crcHigh = crc >> 8;                                                  // 계산된 16비트 CRC 값의 상위 8비트
+  byte crcLow = crc & 0xFF;                                                 // 계산된 16비트 CRC 값의 하위 8비트
+  *(buf + (bufLen - 2)) = crcLow;                                           // 버퍼의 마지막에서 두 번째 위치에 하위 8비트 저장
+  *(buf + (bufLen - 1)) = crcHigh;                                          // 버퍼의 마지막 위치에 상위 8비트 저장
 }
 
 uint16_t combineByte(byte highData, byte lowData)
@@ -702,19 +697,29 @@ bool hasCrcError(byte frame[], int frameLen)
 {
   if (frameLen < 2) // 프레임 길이가 2보다 작은 경우 유효한 CRC를 포함할 수 없음으로 오류
   {
-    return true; // true 반환: CRC 오류 있음
+    Serial.println("Debug Point 01: frameLen < 2");
+    Serial.printf("frameLen: %d\n", frameLen);
+    return true;
   }
+
   byte dataField[frameLen - 2]; // 프레임에서 마지막 두 바이트(CRC)를 제외한 데이터를 복사
   for (int i = 0; i < frameLen - 2; i++)
   {
     dataField[i] = frame[i];
   }
-  uint16_t newCrc = crc16(dataField, frameLen - 2, 0x8005, 0xFFFF, 0, true, true);
+  uint16_t newCrc = calcCRC16(dataField, frameLen - 2, 0x8005, 0xFFFF, 0, true, true);
   byte newCrcHighByte = newCrc >> 8;  // CRC 상위 바이트
   byte newCrcLowByte = newCrc & 0xFF; // CRC 하위 바이트
 
+  Serial.printf("(High)frameCRC[frameLen-1]: %x\n", frame[frameLen - 1]);
+  Serial.printf("(Low)frameCRC[frameLen-2]: %x\n", frame[frameLen - 2]);
+
+  Serial.print("newCRC: ");
+  Serial.printf("%x\n", newCrc);
+
   // 프레임의 CRC와 계산된 CRC를 비교
-  return frame[frameLen - 1] != newCrcHighByte || frame[frameLen - 2] != newCrcLowByte;
+  return frame[frameLen - 1] != newCrcHighByte ||
+         frame[frameLen - 2] != newCrcLowByte;
 }
 
 // 특정 오류 코드를 포함한 Modbus 예외 응답을 생성하는 함수
@@ -779,12 +784,14 @@ void modbusDebugPrint(byte *buf, int bufLen)
 // sensor.cpp ************************************************************************************************************************************
 // Sensor Function Implementation File
 
+// Function to set sensor pins.
 void initSensorPins()
 {
-  sdi12.begin();
-  pinMode(el817Pin, INPUT);
+  sdi12.begin();            // 수분장력 센서용
+  pinMode(el817Pin, INPUT); // 감우센서용
 }
 
+// Function to obtain the starting address of the register map that stores sensor data.
 int getDataStoringIndex(int sensorType)
 {
   switch (sensorType)
@@ -797,20 +804,20 @@ int getDataStoringIndex(int sensorType)
   case 3:
     return 218;
   // Wireless only Composite sensor 4 (401~403)
-  case 41:
+  case 41: // RK520-02 EC
     return 242;
-  case 42:
+  case 42: // RK520-02 HUMI
     return 248;
-  case 43:
+  case 43: // RK520-02 TEMP
     return 257;
   // Additional Sensor
-  case 5:
+  case 5: // 추가된 수분장력센서
     return 251 + 100;
-  case 61:
+  case 61: // 추가된 RK520-02 EC
     return 242 + 100;
-  case 62:
+  case 62: // 추가된 RK520-02 HUMI
     return 248 + 100;
-  case 63:
+  case 63: // 추가된 RK520-02 TEMP
     return 257 + 100;
   default:
     Serial.println("Attempting to find the address of the register map with an invalid sensor type.");
@@ -820,7 +827,7 @@ int getDataStoringIndex(int sensorType)
 
 void checkSensorAwakeTime(int id)
 {
-  if (id == idRk52002Ec || id == idRk52002Humi || id == idRk52002Temp)
+  if (id == idRk52002Ec || id == idRk52002Humi || id == idRk52002Temp) // 41,42,43 -> 4(Rk52002)
   {
     id = idRk52002;
   }
@@ -829,7 +836,7 @@ void checkSensorAwakeTime(int id)
     id = idAddRk52002;
   }
 
-  heartbeatTimes[id - 1] = millis();
+  heartbeatTimes[id - 1] = millis(); // id 인덱스 배열에 시간저장
 }
 
 // 센서 타입(코드번호)으로 구분하여 레지스터 주소 설정
@@ -977,110 +984,138 @@ void getHaimilRainDetector()
 
 void getRk52002()
 {
-  int reqLen = 8;
-  byte request[reqLen] = {0xFE, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00};
-  addCrc(request, reqLen);
+  byte request[] = {ADDR_RK52002, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00}; // RK520-02 8bytes Request
+  int reqLen = sizeof(request) / sizeof(request[0]);
 
-  digitalWrite(rs485TxEnPin, HIGH);
-  Serial2.write(request, reqLen);
-  Serial2.flush();
-  digitalWrite(rs485TxEnPin, LOW);
+  addCrc(request, reqLen); // CRC 붙이기
+
+  digitalWrite(rs485TxEnPin, HIGH); // HIGH: 송신 모드 활성화
+  Serial2.write(request, reqLen);   // request 배열의 데이터를 Serial2로 전송
+  Serial2.flush();                  // 송신 버퍼에 남아있는 데이터가 모두 전송될 때까지 대기
+  digitalWrite(rs485TxEnPin, LOW);  // 모든 데이터가 전송된 이후 송신 모드 비활성화 (LOW)
 
   delay(100);
 
-  byte response[20];
+  // modbus 응답 처리 ****************************************************************
+  byte response[11] = {0}; // 배열 0으로 초기화 선언
   int responseLen = 0;
-  if (Serial2.available())
-  {
-    Serial.print("Rk520-02 response: ");
-    while (true)
-    {
-      if (!Serial2.available())
-      {
-        break;
-      }
 
-      response[responseLen] = Serial2.read(); // response[0] 인덱스부터 채워나감
-      if (response[responseLen] < 0x10)       // 16진수 출력 포맷 자릿수
+  bool validStart = false; // 유효한 modbus 응답이 왔는지 flag
+
+  // response 배열을 채우는 while문
+  while (responseLen < sizeof(response) / sizeof(response[0])) // 길이가 11보다 작으면 수행
+  {
+    if (!Serial2.available())
+    {
+      break; // 데이터가 더 이상 없으면 종료
+    }
+
+    byte incomingByte = Serial2.read();                   // 한 바이트 읽고
+    if (incomingByte == ADDR_RK52002 && responseLen == 0) // 유효 시작바이트가 RK52002 주소
+    {
+      // 정상적인 Modbus 신호 시작 (0xFE)
+      validStart = true;
+      Serial.print("Rk520-02 response: ");
+    }
+
+    if (validStart)
+    {
+      // Serial 모니터 출력부
+      if (incomingByte < 0x10) // 16진수 출력 포맷 자릿수
       {
         Serial.print("0");
       }
-      Serial.print(response[responseLen], HEX); // 16진수 출력
-      Serial.print(" ");                        // 각 비트 사이의 공백
-      responseLen++;
-    }
-    Serial.println("");
+      Serial.print(incomingByte, HEX); // 16진수 출력
+      Serial.print(" ");               // 각 바이트 사이의 공백
 
-    Serial.print("Response length: ");
-    Serial.println(responseLen);
-  }
+      response[responseLen++] = incomingByte; // 대입연산 수행 후 증가
+
+      if (responseLen == sizeof(response) / sizeof(response[0]))
+      {
+        // 11바이트가 모두 수신되면 종료
+        break;
+      }
+    } // if (validStart)
+  } // while
+
+  Serial.println();
+
+  Serial.print("Response length: ");
+  Serial.println(responseLen);
 
   if (hasCrcError(response, responseLen))
   {
+    sendsTempBattData = false; // temp/batt data도 보내지 않음
     Serial.println("Sensor Response CRC error");
-  }
-
-  byte tempHigh = response[3];
-  byte tempLow = response[4];
-  byte humiHigh = response[5];
-  byte humiLow = response[6];
-  byte ecHigh = response[7];
-  byte ecLow = response[8];
-
-  float temp = 0.0;
-  float humi = 0.0;
-  float ec = 0.0;
-
-  int tempData = tempHigh * 256 + tempLow;
-  if (tempData < 0x8000)
-  {
-    temp = tempData / 10.0;
+    Serial.println("Not send ESP-NOW data.");
   }
   else
   {
-    temp = (tempData - 0xFFFF - 0x01) / 10.0;
-  }
-  humi = (humiHigh * 256 + humiLow) / 10.0;
-  ec = (ecHigh * 256 + ecLow) / 1000.0;
+    sendsTempBattData = true;
 
-  // Send message via ESP-NOW
-  espnowData.sensorState = 0;
-  esp_err_t result;
+    byte tempHigh = response[3];
+    byte tempLow = response[4];
+    byte humiHigh = response[5];
+    byte humiLow = response[6];
+    byte ecHigh = response[7];
+    byte ecLow = response[8];
 
-  espnowData.id = idRk52002Ec;
-  espnowData.sensorData = ec;
-  if (params.additionValue)
-  {
-    espnowData.id = idAddRk52002Ec;
-  }
-  result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
-  if (result != ESP_OK)
-  {
-    Serial.print(result);
-    Serial.println("Error : send esp-now RK520-02: EC data.");
-  }
-  delay(1);
+    float temp = 0.0;
+    float humi = 0.0;
+    float ec = 0.0;
 
-  espnowData.id = idRk52002Humi;
-  espnowData.sensorData = humi;
-  if (params.additionValue)
-  {
-    espnowData.id = idAddRk52002Humi;
-  }
-  result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
-  if (result != ESP_OK)
-  {
-    Serial.print(result);
-    Serial.println("Error : send esp-now RK520-02: Humi data.");
-  }
-  delay(1);
+    int tempData = tempHigh * 256 + tempLow;
+    if (tempData < 0x8000)
+    {
+      temp = tempData / 10.0;
+    }
+    else
+    {
+      temp = (tempData - 0xFFFF - 0x01) / 10.0;
+    }
+    humi = (humiHigh * 256 + humiLow) / 10.0;
+    ec = (ecHigh * 256 + ecLow) / 1000.0;
 
-  espnowData.id = idRk52002Temp;
-  espnowData.sensorData = temp;
-  if (params.additionValue)
-  {
-    espnowData.id = idAddRk52002Temp;
+    // Send message via ESP-NOW
+    espnowData.sensorState = 0;
+    esp_err_t result;
+
+    espnowData.id = idRk52002Ec;
+    espnowData.sensorData = ec;
+    if (params.additionValue)
+    {
+      espnowData.id = idAddRk52002Ec;
+    }
+    result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+    if (result != ESP_OK)
+    {
+      Serial.println("Error : send esp-now RK520-02: EC data.");
+      Serial.print("Code: ");
+      Serial.println(result);
+    }
+    delay(1);
+
+    espnowData.id = idRk52002Humi;
+    espnowData.sensorData = humi;
+    if (params.additionValue)
+    {
+      espnowData.id = idAddRk52002Humi;
+    }
+    result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+    if (result != ESP_OK)
+    {
+      Serial.println("Error : send esp-now RK520-02: Humi data.");
+      Serial.print("Code: ");
+      Serial.println(result);
+    }
+    delay(1);
+
+    espnowData.id = idRk52002Temp;
+    espnowData.sensorData = temp;
+    if (params.additionValue)
+    {
+      espnowData.id = idAddRk52002Temp;
+    }
+    // 왜 여기 밑이 없지? -> 배터리 전압값 포함해서 온도랑 같이 보내기 때문인듯
   }
-  // 왜 여기 밑이 없지? -> 배터리 전압값 포함해서 온도랑 같이 보내기 때문인듯
-  // Serial.println("Error : send esp-now RK520-02: Temp data.");
 }
