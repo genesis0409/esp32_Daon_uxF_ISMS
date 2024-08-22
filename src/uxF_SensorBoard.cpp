@@ -5,7 +5,7 @@
 #include "CRC.h"
 #include "InputParams.h"
 
-#define VERSION "0.2.0" // RK520-02 modbus 통신 쓰레기값 처리 로직 추가 (getRk52002())
+#define VERSION "0.2.1" // 송신 로직 개선, 디버그 로그 추가
 
 #define ADDR_RK52002 0XFE
 
@@ -148,7 +148,7 @@ void blinkLed();
 int charToInt(char c);
 
 uint16_t getBatteryPercentage(int sensorType); // SZH-SSBH-043 모듈 사용, 전압값 계산
-bool sendsTempBattData = false;                // hasCrcError() 함수와 연동하여 온도/전압값 전송 여부 결정
+bool sendsOthersData = false;                  // hasCrcError() 함수와 연동하여 온도/전압 및 다른 센서값 전송 여부 결정
 
 void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
@@ -235,7 +235,7 @@ void setupApMode()
 
   // WiFi.softAP("ESP-WIFI-MANAGER", NULL);
   // WiFi.softAP("uxF-StandardBoard-test", NULL);
-  WiFi.softAP("uxF-SensorBoard01-test", NULL);
+  WiFi.softAP("uxF-SensorBoard02-test", NULL);
 
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
@@ -555,9 +555,9 @@ void loopWirelessSensingMode()
       Serial.printf("battery Percentage: %u%%\n", batteryCharge);
       espnowData.battery = batteryCharge;
 
-      if (sendsTempBattData) // getRk52002()의 hasCrcError() 발생 시 전송 차단
+      if (sendsOthersData) // getRk52002()의 hasCrcError() 발생 시 전송 차단
       {
-        // Send message via ESP-NOW; 이 부분은 온도/배터리값 합쳐서 보내는듯?
+        // Send message via ESP-NOW; 이 부분은 온도/배터리값 합쳐서 보내는듯? + 온도 뿐만아니라 수분장력 등 다른 센서값도 사용하는 영역
         esp_err_t result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
 
         if (result != ESP_OK)
@@ -566,6 +566,10 @@ void loopWirelessSensingMode()
           Serial.print("Code: ");
           Serial.println(result);
         }
+      }
+      else
+      {
+        Serial.println("Not send ESP-NOW data.");
       }
     }
   }
@@ -627,6 +631,8 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
 {
+  // 송신자 정보 출력
+  // MAC Addr
   char macStr[18]; // 2자리씩 6개 바이트 + 5개 구분자 + '\0'
   Serial.print("Packet received from: ");
   // snprintf() 함수로 포맷 지정 문자열을 사용해 mac 주소 형식의 문자열로 변환, 'macStr'에 저장
@@ -635,7 +641,29 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
   memcpy(&espnowData, incomingData, sizeof(espnowData)); // incomingData 배열에 수신된 데이터를 espnowData 구조체로 복사
   Serial.printf("Sensor Type: %u \r\n", espnowData.id);  // %u 부호 없는 10진 정수
 
-  checkSensorAwakeTime(espnowData.id);
+  checkSensorAwakeTime(espnowData.id); // 센서 타임아웃 갱신
+
+  // 센서명+센서값 출력
+  String sensorName;
+  switch (espnowData.id)
+  {
+  case 1:
+    sensorName = "Teros-21 Water Potential";
+    break;
+  case 41:
+    sensorName = "RK520-02 EC";
+    break;
+  case 42:
+    sensorName = "RK520-02 HUMI";
+    break;
+  case 43:
+    sensorName = "RK520-02 TEMP";
+    break;
+  default:
+    break;
+  }
+  Serial.print(sensorName);
+  Serial.printf(": %.2f \r\n", espnowData.sensorData); // %u 부호 없는 10진 정수
 
   // save sensor data
   int regMapIndex = getDataStoringIndex(espnowData.id);
@@ -917,13 +945,26 @@ void attachRk52002()
 void getTeros21SoilWaterPotential()
 {
   ESP32_SDI12::Status res = sdi12.measure(deviceAddr, sdi12Values, sizeof(sdi12Values), &numberOfReturnedValues);
+
+  sendsOthersData = true;
+
   if (res != ESP32_SDI12::SDI12_OK)
   {
     Serial.printf("ESP32_SDI12 Error: %d\n", res);
+    sendsOthersData = false; // 통신에 오류있으면 보내지 않음
   }
   float sensorValue = sdi12Values[0];
   Serial.print("Soil Water Potential: ");
   Serial.println(sensorValue);
+
+  Serial.println("Debug Point 02 ************");
+
+  Serial.print("SDI12 Arrays: ");
+  for (int i = 0; i < sizeof(sdi12Values) / sizeof(sdi12Values[0]); i++)
+  {
+    Serial.printf("%.2f ", sdi12Values[i]);
+  }
+  Serial.println();
 
   const int soilWaterPotentialIndex = 251;
   saveFloatToRegisterMap(sdi12Values[0], soilWaterPotentialIndex);
@@ -1045,13 +1086,12 @@ void getRk52002()
 
   if (hasCrcError(response, responseLen))
   {
-    sendsTempBattData = false; // temp/batt data도 보내지 않음
+    sendsOthersData = false; // 나머지 data도 보내지 않음
     Serial.println("Sensor Response CRC error");
-    Serial.println("Not send ESP-NOW data.");
   }
   else
   {
-    sendsTempBattData = true;
+    sendsOthersData = true;
 
     byte tempHigh = response[3];
     byte tempLow = response[4];
