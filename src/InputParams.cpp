@@ -6,21 +6,21 @@ void InputParams::setParam(AsyncWebParameter *p)
   {
     protocol = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_2) // address
+  else if (p->name() == PARAM_INPUT_2) // espnow
+  {
+    espnow = p->value().c_str();
+  }
+  else if (p->name() == PARAM_INPUT_3) // address
   {
     address = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_3) // sensor
+  else if (p->name() == PARAM_INPUT_4) // sensor
   {
     sensor = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_4) // period
+  else if (p->name() == PARAM_INPUT_5) // period
   {
     period = p->value().c_str();
-  }
-  else if (p->name() == PARAM_INPUT_5) // espnow
-  {
-    espnow = p->value().c_str();
   }
   else if (p->name() == PARAM_INPUT_6) // mac
   {
@@ -48,10 +48,10 @@ bool InputParams::checkSettingValues()
   }
 
   protocolMode = protocol.toInt();  // 1. 프로토콜 (유/무선)
-  modbusAddress = address.toInt();  // 2. modbus 주소... 의미 파악필요
-  sensorType = sensor.toInt();      // 3. 부착 센서 선택
-  sleepPeriod = period.toInt();     // 4. 측정 주기
-  espnowMode = espnow.toInt();      // 5. 무선 통신 모드 (표준화-Slave/센서보드-Master)
+  espnowMode = espnow.toInt();      // 2. 무선 통신 모드 (표준화-Slave/센서보드-Master)
+  modbusAddress = address.toInt();  // 3. 표준화 보드용 modbus 주소
+  sensorType = sensor.toInt();      // 4. 부착 센서 선택
+  sleepPeriod = period.toInt();     // 5. 측정 주기
   parseMacString();                 // 6. MAC 주소 (ESP-NOW용 임의설정)
   additionValue = addition.toInt(); // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
 
@@ -118,14 +118,14 @@ void InputParams::showSettingValues()
 {
   Serial.print("Protocol : ");
   Serial.println(protocolMode);
+  Serial.print("ESP-Now Mode : ");
+  Serial.println(espnowMode);
   Serial.print("Modbus Id : ");
   Serial.println(modbusAddress);
   Serial.print("Sensor Type : ");
   Serial.println(sensorType);
   Serial.print("Sensing period : ");
   Serial.println(sleepPeriod);
-  Serial.print("ESP-Now Mode : ");
-  Serial.println(espnowMode);
   Serial.print("Broadcast Mac Address : ");
   for (int i = 0; i < 6; i++) // 0~5 6개
   {
@@ -148,10 +148,10 @@ void InputParams::showSettingValues()
 void InputParams::readFromFile()
 {
   protocol = readFile(SPIFFS, protocolPath);
+  espnow = readFile(SPIFFS, espnowPath);
   address = readFile(SPIFFS, addressPath);
   sensor = readFile(SPIFFS, sensorPath);
   period = readFile(SPIFFS, periodPath);
-  espnow = readFile(SPIFFS, espnowPath);
   mac = readFile(SPIFFS, macPath);
   addition = readFile(SPIFFS, additionPath);
 }
@@ -160,10 +160,10 @@ void InputParams::readFromFile()
 void InputParams::writeToFile()
 {
   writeFile(SPIFFS, protocolPath, protocol.c_str());
+  writeFile(SPIFFS, espnowPath, espnow.c_str());
   writeFile(SPIFFS, addressPath, address.c_str());
   writeFile(SPIFFS, sensorPath, sensor.c_str());
   writeFile(SPIFFS, periodPath, period.c_str());
-  writeFile(SPIFFS, espnowPath, espnow.c_str());
   writeFile(SPIFFS, macPath, mac.c_str());
   writeFile(SPIFFS, additionPath, addition.c_str());
 }
