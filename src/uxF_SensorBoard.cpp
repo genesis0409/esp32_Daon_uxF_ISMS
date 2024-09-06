@@ -44,8 +44,8 @@ void attachRk52002();
 
 // Function that reads sensor information and stores it in a registerMap and espnowData.; 센서값 획득 함수
 void getTeros21SoilWaterPotential();
-void getWoosungRainDetector();
-void getHaimilRainDetector();
+void getWoosungRainDetector(); // 단종
+void getHaimilRainDetector();  // 단종
 void getRk52002();
 
 // Array of function pointers; 함수포인터로 함수선택
@@ -626,7 +626,7 @@ int charToInt(char c)
 void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
   Serial.print("Last Packet Send Status: ");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success." : "Delivery Failure...");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success." : "Delivery Fail...");
 }
 
 void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
