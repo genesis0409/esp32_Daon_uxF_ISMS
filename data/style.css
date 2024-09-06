@@ -4,14 +4,18 @@ body {
   padding: 0;
   font-family: "Roboto", sans-serif;
   background-color: #f0f2f5;
-  color: #333;
+  /* color: #333; */
+  color: #462009;
   text-align: center;
 }
 
 .header {
-  background-color: #282c34;
+  /* background-color: #282c34; */
+  /* color: #61dafb; */
+  background-color: #eb6434;
+  color: #ffffff;
+
   padding: 20px;
-  color: #61dafb;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -31,7 +35,8 @@ h1 {
 }
 
 .settings-card {
-  background-color: #ffffff;
+  /* background-color: #ffffff; */
+  background-color: #fff3d9;
   border-radius: 10px;
   padding: 40px;
   box-shadow: 0 4px 20px rgba(90, 31, 31, 0.1);
@@ -42,7 +47,8 @@ h1 {
 .card-title {
   font-size: 1.5rem;
   margin-bottom: 20px;
-  color: #282c34;
+  /* color: #282c34; */
+  color: #462009;
 }
 
 .form-settings {
@@ -89,12 +95,23 @@ span {
 }
 
 .btn-primary {
-  background-color: #21a1f1;
+  /* background-color: #21a1f1; */
+  background-color: #eb6434;
   color: #fff;
 }
 
 .btn-primary:hover {
-  background-color: #61dafb;
+  /* background-color: #61dafb; */
+  background-color: #e29173;
+}
+
+input,
+select {
+  /* outline: #462009 solid 1px; */
+  color: #462009; /* 글자 색상 */
+  background-color: #fff8e8; /* 배경 색상 */
+  /* border: 1px solid #462009; 테두리 색상 */
+  /* padding: 10px; 패딩 추가 */
 }
 
 /* 체크박스를 숨기고 커스텀 스타일로 대체 */
