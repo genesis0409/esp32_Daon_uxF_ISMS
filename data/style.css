@@ -1,109 +1,352 @@
-html {
-    font-family: Arial, Helvetica, sans-serif; 
-    display: inline-block; 
-    text-align: center;
-  }
-  
-  h1 {
-    font-size: 1.8rem; 
-    color: white;
-  }
-  
-  p { 
-    font-size: 0.8rem;
-  }
-  
-  .topnav { 
-    overflow: hidden; 
-    background-color: #0A1128;
-  }
-  
-  body {  
-    margin: 0;
-  }
-  
-  .content { 
-    padding: 5%;
-  }
-  
-  .card-grid { 
-    max-width: 800px; 
-    margin: 0 auto; 
-    display: grid; 
-    grid-gap: 2rem; 
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  }
-  
-  .card { 
-    background-color: white; 
-    box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
-  }
-  
-  .card-title { 
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #034078
-  }
-  
-  input[type=submit] {
-    border: none;
-    color: #FEFCFB;
-    background-color: #034078;
-    padding: 15px 15px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    width: 100px;
-    margin-right: 10px;
-    border-radius: 4px;
-    transition-duration: 0.4s;
-    }
-  
-  input[type=submit]:hover {
-    background-color: #1282A2;
-  }
-  
-  input[type=text], input[type=number], select {
-    width: 50%;
-    padding: 12px 20px;
-    margin: 18px;
-    display: inline-block;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-  }
-  
-  label {
-    font-size: 1.2rem; 
-  }
-  .value{
-    font-size: 1.2rem;
-    color: #1282A2;  
-  }
-  .state {
-    font-size: 1.2rem;
-    color: #1282A2;
-  }
-  button {
-    border: none;
-    color: #FEFCFB;
-    padding: 15px 32px;
-    text-align: center;
-    font-size: 16px;
-    width: 100px;
-    border-radius: 4px;
-    transition-duration: 0.4s;
-  }
-  .button-on {
-    background-color: #034078;
-  }
-  .button-on:hover {
-    background-color: #1282A2;
-  }
-  .button-off {
-    background-color: #858585;
-  }
-  .button-off:hover {
-    background-color: #252524;
-  } 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
+  text-align: center;
+}
+
+.header {
+  background-color: #282c34;
+  padding: 20px;
+  color: #61dafb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+  text-align: center;
+}
+
+.main-content {
+  display: flex;
+  justify-content: center;
+  /* align-items: center; */
+  align-items: flex-start; /* 상단 정렬 */
+  padding-top: 10vh; /* 상단과의 간격을 50px로 설정 */
+  height: 100vh;
+}
+
+.settings-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 40px;
+  box-shadow: 0 4px 20px rgba(90, 31, 31, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #282c34;
+}
+
+.form-settings {
+  display: grid;
+  gap: 15px;
+}
+
+.form-group {
+  text-align: left;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+input[type="checkbox"] {
+  transform: scale(1.2);
+  margin-right: 10px;
+}
+
+span {
+  font-size: 1rem;
+  vertical-align: middle;
+  margin-left: 5px;
+  color: #333;
+}
+
+.form-actions {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.btn {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #21a1f1;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: #61dafb;
+}
+
+/* 체크박스를 숨기고 커스텀 스타일로 대체 */
+/* .form-group input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 50px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 50px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.form-group input[type="checkbox"]:checked {
+  background-color: #21a1f1;
+}
+
+.form-group input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.form-group input[type="checkbox"]:checked::before {
+  transform: translateX(26px);
+} */
+
+/************************** Codepen Toggle Switch **************************/
+.knobs,
+.layer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* 토글 스위치 전체영역 */
+.button {
+  position: relative;
+  top: -50%;
+  width: 74px;
+  height: 36px;
+  margin: -27px auto 0 auto;
+  overflow: hidden;
+}
+
+.button.r,
+.button.r .layer {
+  border-radius: 100px;
+}
+
+.button.b2 {
+  border-radius: 2px;
+}
+
+.checkbox {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 3;
+}
+
+/* 노브가 뭐지 */
+.knobs {
+  z-index: 2;
+}
+
+/* 토글스위치 왼쪽상태의 백그라운드 */
+.layer {
+  width: 100%;
+  background-color: #ddd;
+  transition: 0.3s ease all;
+  z-index: 1;
+}
+
+/* Button 18 */
+#button-18 .knobs:before,
+#button-18 .knobs span {
+  content: "NO";
+  position: absolute;
+  top: 4px;
+  /* 토글 스위치 왼쪽버튼 좌우조절 */
+  left: -1px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1;
+  background-color: #f44336;
+  border-radius: 2px;
+}
+
+#button-18 .knobs:before {
+  top: 50%;
+  left: 8px;
+  width: 20px;
+  height: 10px;
+  margin-top: -5px;
+  background-color: transparent;
+  z-index: 2;
+}
+
+#button-18 .knobs span {
+  width: 20px;
+  height: 10px;
+  padding: 9px 4px;
+  transition: 0.3s ease all, left 0.3s cubic-bezier(0.18, 0.89, 0.35, 1.15);
+  z-index: 1;
+}
+
+/* 토글 스위치 내 가로줄 (누르고있으면 나오는) */
+#button-18 .checkbox:active + .knobs:before {
+  left: 10px;
+  width: 46px;
+  height: 4px;
+  color: transparent;
+  margin-top: -2px;
+  background-color: #d80000;
+  transition: 0.3s ease all;
+  overflow: hidden;
+}
+
+/* 좌측 토글 버튼 늘어났을 때 크기 */
+#button-18 .checkbox:active + .knobs span {
+  width: 58px;
+}
+
+/* 우측 토글 노브 (가로줄) */
+#button-18 .checkbox:checked:active + .knobs:before {
+  left: auto;
+  right: 10px;
+  background-color: #0095d8;
+}
+
+/* 우측 토글 버튼 늘어났을 때 위치 */
+#button-18 .checkbox:checked:active + .knobs span {
+  margin-left: -33px;
+}
+
+/* 우측 토글 텍스트 */
+#button-18 .checkbox:checked + .knobs:before {
+  content: "ADD";
+  left: 45px;
+}
+
+/* 토글 스위치 오른쪽버튼 좌우조절 */
+#button-18 .checkbox:checked + .knobs span {
+  left: 37px;
+  background-color: #03a9f4;
+}
+
+#button-18 .checkbox:checked ~ .layer {
+  background-color: #ddd;
+}
+
+.button.b2 {
+  float: right;
+}
+
+/************************** Hovering Tip Icon **************************/
+.help-tip {
+  position: relative;
+  /* top: 16px; */
+  top: -22px;
+  /* right: 16px; */
+  left: 140px;
+
+  text-align: center;
+  background-color: #29b6f6;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  line-height: 26px;
+  cursor: default;
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+.help-tip:hover {
+  cursor: pointer;
+  background-color: #ccc;
+}
+
+.help-tip:before {
+  content: "?";
+  font-weight: 700;
+  color: #fff;
+}
+
+/* 헬프 팁 p태그 (메인 내용 영역) */
+.help-tip p {
+  visibility: hidden;
+  opacity: 0;
+  text-align: left;
+  background-color: #039be5;
+  padding: 20px;
+  width: 300px;
+  position: absolute;
+  border-radius: 4px;
+  top: -115px;
+  right: -270px;
+  color: #fff;
+  font-size: 13px;
+  line-height: normal;
+  transform: scale(0.7);
+  /* 애니메이션 기준 왼쪽 상단 모서리; 100% 0% : 오른쪽 상단 모서리 */
+  transform-origin: 18% 100%;
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+.help-tip:hover p {
+  cursor: default;
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 헬프 팁 p태그 삼각형 꼬다리 */
+.help-tip p:before {
+  position: absolute;
+  content: "";
+  /* 요소의 크기를 0으로 하면 삼각형 모양 */
+  width: 0;
+  height: 0;
+  /* 크기 없는 요소에 border 속성을 사용해 외곽선 생성 -> 특정 모양 만듦 */
+  /* 네 개의 border에 서로 다른 색상과 두께를 지정 */
+  border: 6px solid transparent;
+  border-top-color: #039be5;
+  right: 275px;
+  top: 91px;
+}
+
+/* 헬프 팁 안보이는 부분 크기 조정 */
+.help-tip p:after {
+  width: 100%;
+  height: 40px;
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 0;
+}

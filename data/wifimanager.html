@@ -4,52 +4,109 @@
     <meta charset="utf-8" />
     <title>Smart Farm Configuration Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="data:," />
+    <link rel="icon" href="./favicon.ico" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="style.css" />
+
+    <!-- jQuery 라이브러리 로드 -->
+    <script src="./jquery-1.11.1.min.js" defer></script>
+    <!-- 외부 JavaScript 파일 로드 -->
+    <script src="script.js" defer></script>
   </head>
   <body>
-    <div class="topnav">
-      <h1>uxF-StandardBoard-test</h1>
-      <!-- <h1>uxF-SensorBoard01-test</h1> -->
-    </div>
-    <div class="content">
-      <div class="card-grid">
-        <div class="card">
-          <form action="/" method="POST">
-            <p>
-              <label for="protocol">Protocol (1~2)</label>
-              <input type="text" id="protocol" name="protocol" /><br />
-              Wired = 1, Wireless = 2<br />
-              <label for="address">Modbus Address (1~127)</label>
-              <input type="text" id="address" name="address" /><br />
-              <label for="sensor">Sensor Type (1~5)</label>
-              <input type="text" id="sensor" name="sensor" /><br />
-              1: Teros21 Soil Water Potential, 2: Woosung Rain Detector, 3:
-              Haimil Rain Detector, 4: RK520-02(Only Wireless)<br />
-              <label for="period">Measurement Period(wireless)</label>
-              <input type="text" id="period" name="period" /><br />
-              <label for="espnow">RS485/Sensing Mode(wireless)</label>
-              <input type="text" id="espnow" name="espnow" /><br />
-              RS485(Standardization) = 1, Sensing(Measurement) = 2<br />
-              <label for="mac">Mac Address (wireless)</label>
+    <header class="header">
+      <h1>Smart Farm Configuration</h1>
+      <!-- <h1>Daon-StandardBoard-test</h1> -->
+      <!-- <h1>Daon-SensorBoard01-test</h1> -->
+    </header>
+    <main class="main-content">
+      <section class="settings-card">
+        <h2 class="card-title">Device Settings</h2>
+        <form action="/" method="POST" class="form-settings">
+          <div id="group-protocol" class="form-group">
+            <label for="protocol">Protocol</label>
+            <select id="protocol" name="protocol" class="form-control">
+              <option value="1">Wired</option>
+              <option value="2">Wireless</option>
+            </select>
+          </div>
+          <div id="group-espnow" class="form-group">
+            <label for="espnow">RS485/Sensing Mode</label>
+            <select id="espnow" name="espnow" class="form-control">
+              <option value="1">RS485 (Standardization)</option>
+              <option value="2">Sensing (Measurement)</option>
+            </select>
+          </div>
+          <div id="group-address" class="form-group">
+            <label for="address">Modbus Address</label>
+            <input
+              type="number"
+              id="address"
+              name="address"
+              class="form-control"
+              min="1"
+              max="127"
+            />
+          </div>
+          <div id="group-sensor" class="form-group">
+            <label for="sensor">Sensor Type</label>
+            <select id="sensor" name="sensor" class="form-control" required>
+              <option value="1">Teros21 Soil Water Potential</option>
+              <option value="2" disabled>Woosung Rain Detector</option>
+              <option value="3" disabled>Haimil Rain Detector</option>
+              <option value="4">RK520-02 (Wireless only)</option>
+            </select>
+          </div>
+          <div id="group-period" class="form-group">
+            <label for="period">Measurement Period (sec)</label>
+            <input
+              type="number"
+              id="period"
+              name="period"
+              class="form-control"
+              min="10"
+            />
+          </div>
+
+          <div id="group-mac" class="form-group">
+            <label for="mac">MAC Address</label>
+            <input
+              type="text"
+              id="mac"
+              name="mac"
+              class="form-control"
+              placeholder="AA:BB:CC:DD:EE:FF"
+            />
+          </div>
+          <div id="group-addition" class="form-group">
+            <label for="addition">Additional Device </label>
+            <div class="help-tip" id="help-tip">
+              <p>
+                '두 번째 센서보드 추가 시' 해당 필드를 설정한다.<br />
+                (레지스터 주소 +100)<br />
+                미설정 시 기존 표준화 레지스터 맵을 사용한다.
+              </p>
+            </div>
+
+            <div class="button b2" id="button-18">
               <input
-                type="text"
-                id="mac"
-                name="mac"
-                placeholder="AA:BB:CC:DD:EE:FF"
-              /><br />
-              데이터 송수신을 위한 MAC address 를 설정한다.<br />
-              <label for="addition">Additional Device(wireless)</label>
-              <input type="text" id="addition" name="addition" /><br />
-              추가 레지스터 맵을 사용하는 센서는 해당 필드를 1로 설정한다.<br />
-              해당 필드가 설정되지 않은 센서는 기존 표준화 레지스터 맵을
-              사용한다.<br />
-              <br /><br />
-              <input type="submit" value="Submit" />
-            </p>
-          </form>
-        </div>
-      </div>
-    </div>
+                type="checkbox"
+                class="checkbox"
+                id="addition"
+                name="addition"
+                value="1"
+              />
+              <div class="knobs">
+                <span></span>
+              </div>
+              <div class="layer"></div>
+            </div>
+            <!-- <input type="checkbox" id="addition" name="addition" value="1" /> -->
+          </div>
+          <div class="form-actions">
+            <input type="submit" value="Save" class="btn btn-primary" />
+          </div>
+        </form>
+      </section>
+    </main>
   </body>
 </html>
