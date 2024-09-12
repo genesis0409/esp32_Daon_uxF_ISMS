@@ -40,10 +40,13 @@ bool InputParams::checkSettingValues()
                              (protocol != "" && address != "" && sensor != "" && espnow != "" && mac != "") || // 무선 표준화 모드
                              (protocol != "" && sensor != "" && period != "" && espnow != "" && mac != ""));   // 무선 센서 모드
 
-  if (!hasEssentialParams) // 사전 입력값이 없을 시 false
+  Serial.print("hasEssentialParams : ");
+  Serial.println(hasEssentialParams ? "true" : "false");
+
+  if (!hasEssentialParams) // 사전 입력값이 불완전할 시 false
   {
     Serial.println("Start AP mode for board setting.");
-    Serial.println("Connect the WiFi called ESP-WIFI-MANAGER and connect to the following IP.");
+    Serial.println("Connect the WiFi called DAON-WIFI-MANAGER and connect to the following IP.");
     return false;
   }
 
@@ -54,6 +57,19 @@ bool InputParams::checkSettingValues()
   sleepPeriod = period.toInt();     // 5. 측정 주기
   parseMacString();                 // 6. MAC 주소 (ESP-NOW용 임의설정)
   additionValue = addition.toInt(); // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
+
+  Serial.print("Protocol : ");
+  Serial.println(protocol);
+  Serial.print("ESP-Now Mode : ");
+  Serial.println(espnow);
+  Serial.print("Modbus Id : ");
+  Serial.println(address);
+  Serial.print("Sensor Type : ");
+  Serial.println(sensor);
+  Serial.print("Sensing period : ");
+  Serial.println(period);
+  Serial.print("Broadcast Mac Address : ");
+  Serial.println(mac);
 
   // Wired Mode
   if (isWiredCommunicationMode())
