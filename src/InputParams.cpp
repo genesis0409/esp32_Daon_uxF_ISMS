@@ -14,19 +14,23 @@ void InputParams::setParam(AsyncWebParameter *p)
   {
     address = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_4) // sensor
+  else if (p->name() == PARAM_INPUT_4) // sensor1;
   {
-    sensor = p->value().c_str();
+    sensor1 = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_5) // period
+  else if (p->name() == PARAM_INPUT_5) // sensor2;
+  {
+    sensor2 = p->value().c_str();
+  }
+  else if (p->name() == PARAM_INPUT_6) // period
   {
     period = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_6) // mac
+  else if (p->name() == PARAM_INPUT_7) // mac
   {
     mac = p->value().c_str();
   }
-  else if (p->name() == PARAM_INPUT_7) // addition
+  else if (p->name() == PARAM_INPUT_8) // addition
   {
     addition = p->value().c_str();
   }
@@ -36,9 +40,10 @@ bool InputParams::checkSettingValues()
 {
   bool isValid = true;
 
-  bool hasEssentialParams = ((protocol != "" && address != "" && sensor != "") ||                              // 유선 표준화 모드
-                             (protocol != "" && address != "" && sensor != "" && espnow != "" && mac != "") || // 무선 표준화 모드
-                             (protocol != "" && sensor != "" && period != "" && espnow != "" && mac != ""));   // 무선 센서 모드
+  // 입력값 하나라도 비어있으면 false
+  bool hasEssentialParams = ((protocol != "" && address != "" && (sensor1 != "" || sensor2 != "")) ||                              // 유선 표준화 모드
+                             (protocol != "" && address != "" && (sensor1 != "" || sensor2 != "") && espnow != "" && mac != "") || // 무선 표준화 모드
+                             (protocol != "" && (sensor1 != "" || sensor2 != "") && period != "" && espnow != "" && mac != ""));   // 무선 센서 모드
 
   Serial.print("hasEssentialParams : ");
   Serial.println(hasEssentialParams ? "true" : "false");
@@ -50,26 +55,28 @@ bool InputParams::checkSettingValues()
     return false;
   }
 
-  protocolMode = protocol.toInt();  // 1. 프로토콜 (유/무선)
-  espnowMode = espnow.toInt();      // 2. 무선 통신 모드 (표준화-Slave/센서보드-Master)
-  modbusAddress = address.toInt();  // 3. 표준화 보드용 modbus 주소
-  sensorType = sensor.toInt();      // 4. 부착 센서 선택
-  sleepPeriod = period.toInt();     // 5. 측정 주기
-  parseMacString();                 // 6. MAC 주소 (ESP-NOW용 임의설정)
-  additionValue = addition.toInt(); // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
+  protocolMode = protocol.toInt();          // 1. 프로토콜 (유/무선)
+  espnowMode = espnow.toInt();              // 2. 무선 통신 모드 (표준화-Slave/센서보드-Master)
+  modbusAddress = address.toInt();          // 3. 표준화 보드용 modbus 주소
+  sensorType = (sensor1 + sensor2).toInt(); // 4. 부착 센서 선택
+  sleepPeriod = period.toInt();             // 5. 측정 주기
+  parseMacString();                         // 6. MAC 주소 (ESP-NOW용 임의설정)
+  additionValue = addition.toInt();         // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
 
   Serial.print("Protocol : ");
-  Serial.println(protocol);
+  Serial.println(protocolMode);
   Serial.print("ESP-Now Mode : ");
-  Serial.println(espnow);
+  Serial.println(espnowMode);
   Serial.print("Modbus Id : ");
-  Serial.println(address);
+  Serial.println(modbusAddress);
   Serial.print("Sensor Type : ");
-  Serial.println(sensor);
+  Serial.println(sensorType);
   Serial.print("Sensing period : ");
-  Serial.println(period);
+  Serial.println(sleepPeriod);
   Serial.print("Broadcast Mac Address : ");
   Serial.println(mac);
+  Serial.print("Addition : ");
+  Serial.println(additionValue);
 
   // Wired Mode
   if (isWiredCommunicationMode())
@@ -178,7 +185,7 @@ void InputParams::writeToFile()
   writeFile(SPIFFS, protocolPath, protocol.c_str());
   writeFile(SPIFFS, espnowPath, espnow.c_str());
   writeFile(SPIFFS, addressPath, address.c_str());
-  writeFile(SPIFFS, sensorPath, sensor.c_str());
+  writeFile(SPIFFS, sensorPath, (sensor1 + sensor2).c_str());
   writeFile(SPIFFS, periodPath, period.c_str());
   writeFile(SPIFFS, macPath, mac.c_str());
   writeFile(SPIFFS, additionPath, addition.c_str());

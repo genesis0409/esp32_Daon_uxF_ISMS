@@ -47,14 +47,42 @@
               max="127"
             />
           </div>
+
           <div id="group-sensor" class="form-group">
-            <label for="sensor">Sensor Type</label>
-            <select id="sensor" name="sensor" class="form-control" required>
-              <option value="1">Teros21 Soil Water Potential</option>
-              <option value="2" disabled>Woosung Rain Detector</option>
-              <option value="3" disabled>Haimil Rain Detector</option>
-              <option value="4">RK520-02 (Wireless only)</option>
-            </select>
+            <div class="sensor1-group">
+              <div class="sensor-label-group">
+                <label for="sensor1" class="label-sensor1">Sensor1 Type</label>
+              </div>
+              <div class="form-sensor1">
+                <select
+                  id="sensor1"
+                  name="sensor1"
+                  class="form-control-sensor"
+                  required
+                >
+                  <option value="">선택하지 않음</option>
+                  <option value="1">Teros21 Soil Water Potential</option>
+                  <option value="2" disabled>Woosung Rain Detector</option>
+                  <option value="3" disabled>Haimil Rain Detector</option>
+                  <option value="4">RK520-02 (Wireless only)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="sensor2-group">
+              <div class="sensor-label-group">
+                <label for="sensor2" class="label-sensor2">Sensor2 Type</label>
+              </div>
+              <div class="form-sensor2">
+                <select id="sensor2" name="sensor2" class="form-control-sensor">
+                  <option value="">선택하지 않음</option>
+                  <option value="1">Teros21 Soil Water Potential</option>
+                  <option value="2" disabled>Woosung Rain Detector</option>
+                  <option value="3" disabled>Haimil Rain Detector</option>
+                  <option value="4">RK520-02 (Wireless only)</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div id="group-period" class="form-group">
             <label for="period">Measurement Period (sec)</label>

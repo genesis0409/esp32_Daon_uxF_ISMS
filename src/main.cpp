@@ -5,7 +5,7 @@
 #include "CRC.h"
 #include "InputParams.h"
 
-#define VERSION "0.2.1" // 송신 로직 개선, 디버그 로그 추가
+#define VERSION "0.3.0" // UI/UX 개선: 센서 입력부 2개 및 JS기능 추가, 아두이노용 코드 추가
 
 #define ADDR_RK52002 0XFE
 
@@ -182,6 +182,7 @@ void setup()
 
   if (params.checkSettingValues()) // 사전 입력값 검증
   {
+    Serial.println("Debug point 03");
     params.showSettingValues();
 
     if (params.isWiredCommunicationMode())
@@ -232,10 +233,9 @@ void loop()
 void setupApMode()
 {
   Serial.println("Setting AP (Access Point)");
-
-  // WiFi.softAP("ESP-WIFI-MANAGER", NULL);
+  WiFi.softAP("DAON-WIFI-MANAGER", NULL);
   // WiFi.softAP("uxF-StandardBoard-test", NULL);
-  WiFi.softAP("uxF-SensorBoard02-test", NULL);
+  // WiFi.softAP("uxF-SensorBoard02-test", NULL);
 
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");

@@ -10,12 +10,16 @@
 class InputParams
 {
 public:
-  InputParams(int numOfSensors) : numberOfSensors(numOfSensors), protocol(""), espnow(""), address(""), sensor(""), period(""), mac(""), protocolMode(0), espnowMode(0), modbusAddress(0), sensorType(0), sleepPeriod(0), newMacAddress() {};
+  InputParams(int numOfSensors) : numberOfSensors(numOfSensors), protocol(""), espnow(""), address(""), sensor(""), sensor1(""), sensor2(""), period(""), mac(""), protocolMode(0), espnowMode(0), modbusAddress(0), sensorType(0), sleepPeriod(0), newMacAddress() {};
 
   String protocol;
   String espnow;
   String address;
+
   String sensor;
+  String sensor1;
+  String sensor2;
+
   String period;
   String mac;
   String addition;
@@ -33,10 +37,13 @@ public:
   const char *PARAM_INPUT_1 = "protocol";
   const char *PARAM_INPUT_2 = "espnow";
   const char *PARAM_INPUT_3 = "address";
-  const char *PARAM_INPUT_4 = "sensor";
-  const char *PARAM_INPUT_5 = "period";
-  const char *PARAM_INPUT_6 = "mac";
-  const char *PARAM_INPUT_7 = "addition";
+
+  const char *PARAM_INPUT_4 = "sensor1";
+  const char *PARAM_INPUT_5 = "sensor2";
+
+  const char *PARAM_INPUT_6 = "period";
+  const char *PARAM_INPUT_7 = "mac";
+  const char *PARAM_INPUT_8 = "addition";
 
   const char *protocolPath = "/protocol.txt";
   const char *espnowPath = "/espnow.txt";
