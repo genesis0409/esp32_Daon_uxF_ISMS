@@ -182,7 +182,6 @@ void setup()
 
   if (params.checkSettingValues()) // 사전 입력값 검증
   {
-    Serial.println("Debug point 03");
     params.showSettingValues();
 
     if (params.isWiredCommunicationMode())
