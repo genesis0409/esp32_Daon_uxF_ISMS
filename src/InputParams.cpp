@@ -41,27 +41,17 @@ bool InputParams::checkSettingValues()
   bool isValid = true;
 
   // 입력값 하나라도 비어있으면 false
-  bool hasEssentialParams = ((protocol != "" && address != "" && (sensor1 != "" || sensor2 != "")) ||                              // 유선 표준화 모드
-                             (protocol != "" && address != "" && (sensor1 != "" || sensor2 != "") && espnow != "" && mac != "") || // 무선 표준화 모드
-                             (protocol != "" && (sensor1 != "" || sensor2 != "") && period != "" && espnow != "" && mac != ""));   // 무선 센서 모드
+  bool hasEssentialParams = ((protocol != "" && address != "" && sensor != "") ||                              // 유선 표준화 모드
+                             (protocol != "" && address != "" && sensor != "" && espnow != "" && mac != "") || // 무선 표준화 모드
+                             (protocol != "" && sensor != "" && period != "" && espnow != "" && mac != ""));   // 무선 센서 모드
 
-  Serial.print("hasEssentialParams : ");
-  Serial.println(hasEssentialParams ? "true" : "false");
-
-  if (!hasEssentialParams) // 사전 입력값이 불완전할 시 false
-  {
-    Serial.println("Start AP mode for board setting.");
-    Serial.println("Connect the WiFi called DAON-WIFI-MANAGER and connect to the following IP.");
-    return false;
-  }
-
-  protocolMode = protocol.toInt();          // 1. 프로토콜 (유/무선)
-  espnowMode = espnow.toInt();              // 2. 무선 통신 모드 (표준화-Slave/센서보드-Master)
-  modbusAddress = address.toInt();          // 3. 표준화 보드용 modbus 주소
-  sensorType = (sensor1 + sensor2).toInt(); // 4. 부착 센서 선택
-  sleepPeriod = period.toInt();             // 5. 측정 주기
-  parseMacString();                         // 6. MAC 주소 (ESP-NOW용 임의설정)
-  additionValue = addition.toInt();         // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
+  protocolMode = protocol.toInt();  // 1. 프로토콜 (유/무선)
+  espnowMode = espnow.toInt();      // 2. 무선 통신 모드 (표준화-Slave/센서보드-Master)
+  modbusAddress = address.toInt();  // 3. 표준화 보드용 modbus 주소
+  sensorType = sensor.toInt();      // 4. 부착 센서 선택
+  sleepPeriod = period.toInt();     // 5. 측정 주기
+  parseMacString();                 // 6. MAC 주소 (ESP-NOW용 임의설정)
+  additionValue = addition.toInt(); // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
 
   Serial.print("Protocol : ");
   Serial.println(protocolMode);
@@ -77,6 +67,16 @@ bool InputParams::checkSettingValues()
   Serial.println(mac);
   Serial.print("Addition : ");
   Serial.println(additionValue);
+
+  Serial.print("hasEssentialParams : ");
+  Serial.println(hasEssentialParams ? "true" : "false");
+
+  if (!hasEssentialParams) // 사전 입력값이 불완전할 시 false
+  {
+    Serial.println("Start AP mode for board setting.");
+    Serial.println("Connect the WiFi called DAON-WIFI-MANAGER and connect to the following IP.");
+    return false;
+  }
 
   // Wired Mode
   if (isWiredCommunicationMode())
