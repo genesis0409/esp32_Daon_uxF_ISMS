@@ -53,21 +53,6 @@ bool InputParams::checkSettingValues()
   parseMacString();                 // 6. MAC 주소 (ESP-NOW용 임의설정)
   additionValue = addition.toInt(); // 7. 무선 통신 센서 추가 (표준화:센서 = 1:2 연결)
 
-  Serial.print("Protocol : ");
-  Serial.println(protocolMode);
-  Serial.print("ESP-Now Mode : ");
-  Serial.println(espnowMode);
-  Serial.print("Modbus Id : ");
-  Serial.println(modbusAddress);
-  Serial.print("Sensor Type : ");
-  Serial.println(sensorType);
-  Serial.print("Sensing period : ");
-  Serial.println(sleepPeriod);
-  Serial.print("Broadcast Mac Address : ");
-  Serial.println(mac);
-  Serial.print("Addition : ");
-  Serial.println(additionValue);
-
   Serial.print("hasEssentialParams : ");
   Serial.println(hasEssentialParams ? "true" : "false");
 
@@ -150,9 +135,10 @@ void InputParams::showSettingValues()
   Serial.print("Sensing period : ");
   Serial.println(sleepPeriod);
   Serial.print("Broadcast Mac Address : ");
+  // 바이트 자료형; String 자료형과 구분짓기
   for (int i = 0; i < 6; i++) // 0~5 6개
   {
-    if (mac[i] < 0x10) // 한자릿수 보간
+    if (newMacAddress[i] < 0x10) // 한자릿수 보간
     {
       Serial.print("0");
     }
