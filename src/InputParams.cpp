@@ -197,6 +197,12 @@ bool InputParams::isSensingMode()
   return (espnowMode == 2); // 센서보드
 }
 
+// 240926 getSensorType() 추가
+int InputParams::getSensorType()
+{
+  return sensorType;
+}
+
 void initSPIFFS()
 {
   if (!SPIFFS.begin(true))

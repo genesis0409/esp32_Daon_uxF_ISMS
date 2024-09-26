@@ -63,6 +63,8 @@ public:
   bool isRs485Mode();
   bool isSensingMode();
   void parseMacString();
+
+  int getSensorType();
 };
 
 void initSPIFFS();
