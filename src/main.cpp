@@ -547,21 +547,21 @@ void loopWirelessSensingMode()
     else
     {
       // Sensing Functions; 센서값 획득
-      (*getSensors[index - 1])();
+      (*getSensors[index - 1])(); // 연동1. EC센서의 경우 EC, Humi값은 이미 보냄
 
       // Check Wireless Sensor Board Battery.
       uint16_t batteryCharge = getBatteryPercentage(index);
       Serial.printf("battery Percentage: %u%%\n", batteryCharge);
       espnowData.battery = batteryCharge;
 
-      if (sendsOthersData) // getRk52002()의 hasCrcError() 발생 시 전송 차단
+      if (sendsOthersData) // 연동2. EC, Humi 값을 못보낸 상황: getRk52002()의 hasCrcError() 발생 시 온도값 역시 전송 차단()
       {
         // Send message via ESP-NOW; 이 부분은 온도/배터리값 합쳐서 보내는듯? + 온도 뿐만아니라 수분장력 등 다른 센서값도 사용하는 영역
         esp_err_t result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
 
         if (result != ESP_OK)
         {
-          Serial.println("Error : send esp-now RK520-02: Temp/BattV data.");
+          Serial.println("Error: Send esp-now RK520-02: Temp/BattV data.");
           Serial.print("Code: ");
           Serial.println(result);
         }
@@ -593,8 +593,8 @@ uint16_t getBatteryPercentage(int sensorType)
   // Serial.print("Battery Voltage: ");
   // Serial.println(vin);
 
-  const float dischargeVolt = 7.6;
-  const float fullchargeVolt = 12.29;
+  const float dischargeVolt = 7.6;    // 방전 기준 전압
+  const float fullchargeVolt = 12.29; // 완충 기준 전압
 
   if (vin <= dischargeVolt)
   {
@@ -665,23 +665,61 @@ void onDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
   Serial.printf(": %.2f \r\n", espnowData.sensorData); // %u 부호 없는 10진 정수
 
   // save sensor data
-  int regMapIndex = getDataStoringIndex(espnowData.id);
+  int regMapIndex = getDataStoringIndex(espnowData.id); // sensorType Case문
   saveFloatToRegisterMap(espnowData.sensorData, regMapIndex);
 
   // save battery
-  int sensorId = espnowData.id > 10 ? espnowData.id / 10 : espnowData.id;
-  if (sensorId <= 4)
+  int sensorId = espnowData.id > 10 ? espnowData.id / 10 : espnowData.id; // 1,2,3,4, 41, 42, 43... 을 앞의 한 자릿수로 통일(내림)
+
+  // Serial.println("Debug Point 00");
+  // Serial.print("getSensorType(): ");
+  // Serial.println(params.getSensorType());
+  // Serial.print("sensorId: ");
+  // Serial.println(sensorId);
+  // Serial.print("String(params.getSensorType())[0]: ");
+  // Serial.println(String(params.getSensorType())[0]);
+  // Serial.print("String(params.getSensorType())[1]: ");
+  // Serial.println(String(params.getSensorType())[1]);
+
+  // Serial.println((sensorId == String(params.getSensorType())[0] - '0' && (sensorId < 4 || espnowData.id == 43)) ? "true" : "false");
+  // Serial.println((sensorId == String(params.getSensorType())[1] - '0' && (sensorId < 4 || espnowData.id == 43)) ? "true" : "false");
+  // Serial.println((sensorId == String(params.getSensorType())[0] - '0') ? "true" : "false");
+  // Serial.println((sensorId < 4 || espnowData.id == 43) ? "true" : "false");
+  // Serial.println(params.getSensorType() > 10 ? "true" : "false");
+
+  if (params.getSensorType() > 10) // 2개의 다른 센서가 하나의 표준화 보드와 매칭일 때
+  {
+    if (sensorId == String(params.getSensorType())[0] - '0' && (sensorId < 4 || espnowData.id == 43))
+    { // sensor 01
+      registerMap[293] = espnowData.battery;
+      Serial.print("[293]Battery Percentage: ");
+      Serial.printf("%u%% \r\n", espnowData.battery);
+    }
+    if (sensorId == String(params.getSensorType())[1] - '0' && (sensorId < 4 || espnowData.id == 43))
+    { // sensor 02
+      registerMap[393] = espnowData.battery;
+      Serial.print("[393]Battery Percentage: ");
+      Serial.printf("%u%% \r\n", espnowData.battery);
+    }
+  }
+  else if (sensorId <= 4) // 1개만 연결했거나 2개의 같은 센서가 하나의 표준화 보드와 매칭일 때
   {
     registerMap[293] = espnowData.battery;
+    Serial.print("[293]Battery Percentage: ");
+    Serial.printf("%u%% \r\n", espnowData.battery);
   }
   else if (sensorId == 5 || sensorId == 6)
   {
     registerMap[393] = espnowData.battery;
+    Serial.print("[393]Battery Percentage: ");
+    Serial.printf("%u%% \r\n", espnowData.battery);
   }
   else
   {
     Serial.println("ESP-NOW sensor ID error.");
   }
+
+  Serial.println(); // 수신 로그 구분 개행
 }
 
 // modbus.cpp ************************************************************************************************************************************
@@ -1125,7 +1163,7 @@ void getRk52002()
     {
       espnowData.id = idAddRk52002Ec;
     }
-    result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+    result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData)); // EC 전송
     if (result != ESP_OK)
     {
       Serial.println("Error : send esp-now RK520-02: EC data.");
@@ -1140,7 +1178,7 @@ void getRk52002()
     {
       espnowData.id = idAddRk52002Humi;
     }
-    result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData));
+    result = esp_now_send(params.newMacAddress, (uint8_t *)&espnowData, sizeof(espnowData)); // Humi 전송
     if (result != ESP_OK)
     {
       Serial.println("Error : send esp-now RK520-02: Humi data.");
