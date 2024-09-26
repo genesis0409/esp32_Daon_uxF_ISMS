@@ -5,7 +5,7 @@
 #include "CRC.h"
 #include "InputParams.h"
 
-#define VERSION "0.3.0" // UI/UX 개선: 센서 입력부 2개 및 JS기능 추가, 아두이노용 코드 추가
+#define VERSION "0.3.2" // UI/UX 개선: 센서 입력부 2개 및 JS기능 추가, 아두이노용 코드 추가
 
 #define ADDR_RK52002 0XFE
 
